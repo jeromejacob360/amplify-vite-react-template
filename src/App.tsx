@@ -6,30 +6,39 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 const client = generateClient<Schema>();
 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [jobApplications, setJobApplication] = useState<Array<Schema["JobApplication"]["type"]>>([]);
   const { user, signOut } = useAuthenticator();
   
 
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
+    client.models?.JobApplication?.observeQuery().subscribe({
+      next: (data) => setJobApplication([...data.items]),
     });
   }, []);
 
   function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
+    client.models.JobApplication.create({ 
+      appliedDate: new Date().toISOString(),
+      company: "Goooogle",
+      position: "Frontend Dev",
+      status: "APPLIED"
+    });
   }
 
   function deleteTodo(id: string) {
-    client.models.Todo.delete({ id });
+    client.models.JobApplication.delete({ id });
   }
   return (
     <main>
       <h1>Hello {user?.signInDetails?.loginId?.split("@")?.[0]}</h1>
       <button onClick={createTodo}>+ new</button>
       <ul>
-        {todos.map((todo) => (
-          <li onClick={() => deleteTodo(todo.id)} key={todo.id}>{todo.content}</li>
+        {jobApplications.map((jobApplication) => (
+          <li onClick={() => deleteTodo(jobApplication.id)} key={jobApplication.id}>
+            <span>{jobApplication.company}</span>
+            <span>{jobApplication.position}</span>
+            <span>{jobApplication.status}</span>
+          </li>
         ))}
       </ul>
       <div>

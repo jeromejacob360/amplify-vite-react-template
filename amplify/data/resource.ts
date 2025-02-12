@@ -1,9 +1,12 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
-  Todo: a
+  JobApplication: a
     .model({
-      content: a.string(),
+      company: a.string(),
+      position: a.string(),
+      status: a.enum(["APPLIED", "INTERVIEW", "OFFER", "REJECTED", "HIRED"]),
+      appliedDate: a.date(),
     })
     .authorization((allow) => [allow.owner()]),
 });
