@@ -12,9 +12,12 @@ function App() {
 
 
   useEffect(() => {
-    client.models.JobApplication.observeQuery().subscribe({
+    const dataStream = client.models.JobApplication.observeQuery().subscribe({
       next: (data) => setJobApplication([...data.items]),
+      error: (error) => console.error(error),
     });
+
+    return dataStream.unsubscribe
   }, []);
 
   useEffect(() => {
@@ -22,14 +25,13 @@ function App() {
     async function callLambda() {
       try {
 
-       const res = await client.queries.sayHello({
-        name: "AAAAAAAAAAAAA"
-       })
-       console.log("resresresres", res);
-       
+        const res = await client.queries.sayHello({
+          name: "AAAAAAAAAAAAA"
+        })
+        console.log("resresresres", res.data);
+
       } catch (e) {
         console.log("Error ", e);
-
       }
     }
     callLambda();
