@@ -1,12 +1,20 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { sayHello } from "../functions/say-hello/resource";
 
-const schema = a.schema({
+export const schema = a.schema({
+  sayHello: a
+    .query()
+    .arguments({
+      name: a.string(),
+    })
+    .returns(a.string())
+    .handler(a.handler.function(sayHello)),
   JobApplication: a
     .model({
       company: a.string(),
       position: a.string(),
       status: a.enum(["APPLIED", "INTERVIEW", "OFFER", "REJECTED", "HIRED"]),
-      appliedDate: a.date(),
+      appliedDate: a.string(),
     })
     .authorization((allow) => [allow.owner()]),
 });

@@ -8,46 +8,60 @@ const client = generateClient<Schema>();
 function App() {
   const [jobApplications, setJobApplication] = useState<Array<Schema["JobApplication"]["type"]>>([]);
   const { user, signOut } = useAuthenticator();
-  
+  console.log(client);
+
 
   useEffect(() => {
-    client.models?.JobApplication?.observeQuery().subscribe({
+    client.models.JobApplication.observeQuery().subscribe({
       next: (data) => setJobApplication([...data.items]),
     });
   }, []);
 
-  function createTodo() {
-    client.models.JobApplication.create({ 
-      appliedDate: new Date().toISOString(),
-      company: "Goooogle",
-      position: "Frontend Dev",
-      status: "APPLIED"
+  useEffect(() => {
+
+    async function callLambda() {
+      try {
+
+       const res = await client.queries.sayHello({
+        name: "AAAAAAAAAAAAA"
+       })
+       console.log("resresresres", res);
+       
+      } catch (e) {
+        console.log("Error ", e);
+
+      }
+    }
+    callLambda();
+
+  }, [])
+  async function createJobApplication() {
+    const res = await client.models.JobApplication.create({
+      company: window.prompt("Company name"),
+      position: window.prompt("Job position"),
+      status: "APPLIED", // Default status
+      appliedDate: "new Date().toISOString()",
     });
+
+    console.log(res);
+
   }
 
-  function deleteTodo(id: string) {
-    client.models.JobApplication.delete({ id });
-  }
+
+  // function deleteTodo(id: string) {
+  //   client.models.JobApplication.delete({ id });
+  // }
   return (
     <main>
       <h1>Hello {user?.signInDetails?.loginId?.split("@")?.[0]}</h1>
-      <button onClick={createTodo}>+ new</button>
+      <button onClick={createJobApplication}>+ new</button>
       <ul>
         {jobApplications.map((jobApplication) => (
-          <li onClick={() => deleteTodo(jobApplication.id)} key={jobApplication.id}>
-            <span>{jobApplication.company}</span>
-            <span>{jobApplication.position}</span>
-            <span>{jobApplication.status}</span>
+          <li key={jobApplication.id}>
+            {jobApplication.company} - {jobApplication.position} ({jobApplication.status})
           </li>
         ))}
       </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
-      </div>
       <button onClick={signOut} >Sign out</button>
     </main>
   );
