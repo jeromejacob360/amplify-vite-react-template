@@ -52,15 +52,15 @@ export default function JobApplicationForm() {
 
             }
         }
-            const responseFromDynamoDB = await client.models.JobApplication.create({
-                jobTitle: data.title,
-                jobDescription: data.description,
-                numberOfApplicants: data.numberOfApplicants,
-                resumeUrl: data.resumeUrl,
-                coverLetterUrl: data.coverLetterFile?.[0].name
-            });
-            console.log("responseFromDynamoDB", responseFromDynamoDB);
-  
+        const responseFromDynamoDB = await client.models.JobApplication.create({
+            jobTitle: data.title,
+            jobDescription: data.description,
+            numberOfApplicants: data.numberOfApplicants,
+            resumeUrl: data.resumeUrl,
+            coverLetterUrl: data.coverLetterFile?.[0].name
+        });
+        console.log("responseFromDynamoDB", responseFromDynamoDB);
+
 
     };
 
@@ -116,8 +116,8 @@ export default function JobApplicationForm() {
                     />
                 </div>
 
-                 {/* Job Description */}
-                 <div>
+                {/* Job Description */}
+                <div>
                     <label className="form-label">Job Description</label>
                     <textarea
                         {...register("description", { required: true })}
