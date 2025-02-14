@@ -1,17 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
-import { useAuthenticator } from "@aws-amplify/ui-react";
-import { uploadData } from "aws-amplify/storage";
-import ProgressBar from "./components/ProgressBar";
+import { useEffect } from "react";
 import AddApplication from "./pages/AddApplication";
 import Navbar from "./components/Navbar";
 import { Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import MyApplications from "./pages/MyApplications";
-
-// const client = generateClient<Schema>();
 
 function App() {
   // const [jobApplications, setJobApplication] = useState<Array<Schema["JobApplication"]["type"]>>([]);

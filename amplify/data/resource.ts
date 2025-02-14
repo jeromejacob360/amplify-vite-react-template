@@ -12,9 +12,13 @@ export const schema = a.schema({
     .authorization((allow) => [allow.authenticated()]),
   JobApplication: a
     .model({
-      company: a.string(),
-      position: a.string(),
-      status: a.enum(["APPLIED", "INTERVIEW", "OFFER", "REJECTED", "HIRED"]),
+      jobTitle: a.string(),
+      jobDescription: a.string(),
+      // salaryRange: a.string(),
+      numberOfApplicants: a.string(),
+      resumeUrl: a.string(),
+      coverLetterUrl: a.string(),
+      status: a.enum(["interviewScheduled", "interviewed", "accepted", "rejected", "noResponse"]),
       appliedDate: a.string(),
     })
     .authorization((allow) => [allow.owner()]),

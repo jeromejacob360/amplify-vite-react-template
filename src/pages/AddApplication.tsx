@@ -1,57 +1,11 @@
-// /* eslint-disable @typescript-eslint/no-explicit-any */
-// import { uploadData } from 'aws-amplify/storage';
-// import { useState } from 'react'
-// import ProgressBar from '../components/ProgressBar';
-
-// const AddApplication = () => {
-//     const [progress, setProgress] = useState(0);
-//     const [file, setFile] = useState({} as any);
-
-//     const handleChange = (event: any) => {
-//         setFile(event.target.files?.[0]);
-//     };
-
-
-//     const handleClick = () => {
-//         if (!file) {
-//             return;
-//         }
-//         try {
-//             uploadData({
-//                 path: `pictures/${file?.name}`,
-//                 data: file,
-//                 options: {
-
-//                     onProgress: (progress) => {
-//                         const { transferredBytes, totalBytes } = progress;
-//                         if (totalBytes) {
-//                             const percent = Math.round((transferredBytes / totalBytes) * 100);
-//                             setProgress(percent);
-//                         }
-//                     },
-//                 }
-//             });
-
-//         } catch (e) {
-//             console.log("Error ", e);
-//         }
-//     };
-//     return (
-//         <div>
-//             <ProgressBar progress={progress} />
-//             <input type="file" onChange={handleChange} />
-//             <button onClick={handleClick}>Upload</button>
-//         </div>
-//     )
-// }
-
-// export default AddApplication
-
-
+import { TransferProgressEvent, uploadData } from "aws-amplify/storage";
 import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
+import ProgressBar from "../components/ProgressBar";
+import { client } from "../lib/amplify/client";
 
 type ApplicantCount = "<10" | "10-20" | "20-40" | "40-80" | "80-100" | ">100";
+type ApplicationStatus = "interviewScheduled" | "interviewed" | "accepted" | "rejected" | "noResponse"
 
 interface AdditionalDocument {
     id: number;
@@ -61,11 +15,12 @@ interface AdditionalDocument {
 
 interface JobApplicationFormData {
     title: string;
+    applicationStatus?: ApplicationStatus;
     description: string;
-    salary?: string;
-    postedDate?: string;
-    applicants: ApplicantCount;
+    // salaryRange?: string;
+    numberOfApplicants: ApplicantCount;
     resume?: FileList;
+    resumeUrl?: string;
     coverLetter?: boolean;
     coverLetterFile?: FileList;
     documents: AdditionalDocument[];
@@ -77,11 +32,62 @@ export default function JobApplicationForm() {
     });
 
     const [documents, setDocuments] = useState<AdditionalDocument[]>([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const coverLetterChecked = watch("coverLetter");
 
-    const onSubmit: SubmitHandler<JobApplicationFormData> = (data) => {
-        console.log("Form Data:", data);
+
+    const onSubmit: SubmitHandler<JobApplicationFormData> = async (data) => {
+        if (data.resume?.length) {
+            let res;
+            try {
+                res = await uploadFileToS3(data.resume![0]);
+                console.log("Response:", res);
+                if (res?.path) {
+                    data.resumeUrl = res.path;
+                    console.log("Data sent to DynamoDB", data);
+                }
+
+            } catch (error) {
+                console.log("Error ", error);
+
+            }
+        }
+            const responseFromDynamoDB = await client.models.JobApplication.create({
+                jobTitle: data.title,
+                jobDescription: data.description,
+                numberOfApplicants: data.numberOfApplicants,
+                resumeUrl: data.resumeUrl,
+                coverLetterUrl: data.coverLetterFile?.[0].name
+            });
+            console.log("responseFromDynamoDB", responseFromDynamoDB);
+  
+
     };
+
+    const uploadFileToS3 = async (file: File) => {
+        let result;
+        try {
+            result = await uploadData({
+                path: `resumes/jerome/${file.name}-${new Date().getTime()}`,
+                data: file,
+                options: {
+                    onProgress: handleUploadProgress
+                }
+            }).result;
+        } catch (error) {
+            console.log("Error ", error);
+        }
+
+        return result;
+    };
+
+    function handleUploadProgress(progress: TransferProgressEvent) {
+        const { transferredBytes, totalBytes } = progress;
+        if (totalBytes) {
+            const percent = Math.round((transferredBytes / totalBytes) * 100);
+            setUploadProgress(percent);
+        }
+    }
 
     // Add new document field
     const addDocumentField = () => {
@@ -97,6 +103,7 @@ export default function JobApplicationForm() {
 
     return (
         <div className="form-container">
+            <ProgressBar progress={uploadProgress} />
             <h2 className="text-xl font-semibold mb-4">Job Application</h2>
             <form onSubmit={handleSubmit(onSubmit)} className="form space-y-4">
                 {/* Job Title */}
@@ -109,8 +116,8 @@ export default function JobApplicationForm() {
                     />
                 </div>
 
-                {/* Job Description */}
-                <div>
+                 {/* Job Description */}
+                 <div>
                     <label className="form-label">Job Description</label>
                     <textarea
                         {...register("description", { required: true })}
@@ -118,30 +125,32 @@ export default function JobApplicationForm() {
                     />
                 </div>
 
-                {/* Salary Range */}
+                {/* Status */}
                 <div>
+                    <label className="form-label">Application Status</label>
+                    <select {...register("applicationStatus")} className="select">
+                        <option value="interviewScheduled">Interview scheduled</option>
+                        <option value="interviewed">Interviewed</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="noResponse">No Response</option>
+                    </select>
+                </div>
+
+                {/* Salary Range */}
+                {/* <div>
                     <label className="form-label">Salary Range</label>
                     <input
                         type="number"
-                        {...register("salary", { min: 0, pattern: /0-9/ })}
+                        {...register("salaryRange", { min: 0, pattern: /0-9/ })}
                         className="input"
                     />
-                </div>
-
-                {/* Posted Date */}
-                <div>
-                    <label className="form-label">Posted Date</label>
-                    <input
-                        type="date"
-                        {...register("postedDate")}
-                        className="input"
-                    />
-                </div>
+                </div> */}
 
                 {/* Number of Applicants */}
                 <div>
                     <label className="form-label">Number of Applicants</label>
-                    <select {...register("applicants")} className="select">
+                    <select {...register("numberOfApplicants")} className="select">
                         <option value="<10">Below 10</option>
                         <option value="10-20">10 to 20</option>
                         <option value="20-40">20 to 40</option>
