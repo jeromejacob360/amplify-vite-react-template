@@ -5,52 +5,30 @@ import { generateClient } from "aws-amplify/data";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { uploadData } from "aws-amplify/storage";
 import ProgressBar from "./components/ProgressBar";
+import AddApplication from "./pages/AddApplication";
+import Navbar from "./components/Navbar";
+import { Route, Routes } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import MyApplications from "./pages/MyApplications";
 
-const client = generateClient<Schema>();
+// const client = generateClient<Schema>();
 
 function App() {
-  const [jobApplications, setJobApplication] = useState<Array<Schema["JobApplication"]["type"]>>([]);
-  const { user, signOut } = useAuthenticator();
-  const [file, setFile] = useState({} as any);
-  const [progress, setProgress] = useState(0);
-
-  const handleChange = (event: any) => {
-    setFile(event.target.files?.[0]);
-  };
-
-  const handleClick = () => {
-    if (!file) {
-      return;
-    }
-    try {
-      uploadData({
-        path: `pictures/${file?.name}`,
-        data: file,
-        options: {
-          onProgress: (progress) => {
-            const { transferredBytes, totalBytes } = progress;
-            if (totalBytes) {
-              const percent = Math.round((transferredBytes / totalBytes) * 100);
-              setProgress(percent);
-            }
-          },
-        }
-      });
-
-    } catch (e) {
-      console.log("Error ", e);
-    }
-  };
+  // const [jobApplications, setJobApplication] = useState<Array<Schema["JobApplication"]["type"]>>([]);
+  // const { user, signOut } = useAuthenticator();
 
 
-  useEffect(() => {
-    const dataStream = client.models.JobApplication.observeQuery().subscribe({
-      next: (data) => setJobApplication([...data.items]),
-      error: (error) => console.error(error),
-    });
 
-    return dataStream.unsubscribe
-  }, []);
+
+
+  // useEffect(() => {
+  //   const dataStream = client.models.JobApplication.observeQuery().subscribe({
+  //     next: (data) => setJobApplication([...data.items]),
+  //     error: (error) => console.error(error),
+  //   });
+
+  //   return dataStream.unsubscribe
+  // }, []);
 
   useEffect(() => {
     // async function callLambda() {
@@ -66,37 +44,30 @@ function App() {
     // callLambda();
 
   }, [])
-  async function createJobApplication() {
-    const res = await client.models.JobApplication.create({
-      company: window.prompt("Company name"),
-      position: window.prompt("Job position"),
-      status: "APPLIED", // Default status
-      appliedDate: "new Date().toISOString()",
-    });
+  // async function createJobApplication() {
+  //   const res = await client.models.JobApplication.create({
+  //     company: window.prompt("Company name"),
+  //     position: window.prompt("Job position"),
+  //     status: "APPLIED", // Default status
+  //     appliedDate: "new Date().toISOString()",
+  //   });
 
-    console.log(res);
+  //   console.log(res);
 
-  }
+  // }
 
 
   return (
-    <main>
-      <ProgressBar progress={progress} />
-      <h1>Hello {user?.signInDetails?.loginId?.split("@")?.[0]}</h1>
-      <button onClick={createJobApplication}>+ new</button>
-      <ul>
-        {jobApplications.map((jobApplication) => (
-          <li key={jobApplication.id}>
-            {jobApplication.company} - {jobApplication.position} ({jobApplication.status})
-          </li>
-        ))}
-      </ul>
-      <div>
-        <input type="file" onChange={handleChange} />
-        <button onClick={handleClick}>Upload</button>
-      </div>
-      <button onClick={signOut} >Sign out</button>
-    </main>
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/add" element={<AddApplication />} />
+        <Route path="/applications" element={<MyApplications />} />
+        {/* <h1>Hello {user?.signInDetails?.loginId?.split("@")?.[0]}</h1> */}
+        {/* <button onClick={signOut} >Sign out</button> */}
+      </Routes>
+    </>
   );
 }
 
