@@ -27,12 +27,14 @@ interface JobApplicationFormData {
 }
 
 export default function JobApplicationForm() {
-    const { register, handleSubmit, watch, setValue } = useForm<JobApplicationFormData>({
-        defaultValues: { documents: [] },
-    });
 
     const [documents, setDocuments] = useState<AdditionalDocument[]>([]);
     const [uploadProgress, setUploadProgress] = useState(0);
+
+    const { register, handleSubmit, watch, setValue, reset } = useForm<JobApplicationFormData>({
+        defaultValues: { documents: [] },
+    });
+
     const coverLetterChecked = watch("coverLetter");
 
 
@@ -41,11 +43,12 @@ export default function JobApplicationForm() {
             let res;
             try {
                 res = await uploadFileToS3(data.resume![0]);
-                console.log("Response:", res);
                 if (res?.path) {
                     data.resumeUrl = res.path;
-                    console.log("Data sent to DynamoDB", data);
                 }
+                setUploadProgress(0);
+                setDocuments([]);
+                // reset();
 
             } catch (error) {
                 console.log("Error ", error);
@@ -60,15 +63,13 @@ export default function JobApplicationForm() {
             coverLetterUrl: data.coverLetterFile?.[0].name
         });
         console.log("responseFromDynamoDB", responseFromDynamoDB);
-
-
     };
 
     const uploadFileToS3 = async (file: File) => {
         let result;
         try {
             result = await uploadData({
-                path: `resumes/jerome/${file.name}-${new Date().getTime()}`,
+                path: (({ identityId }) => `resumes/${identityId}/${file.name}-${new Date().getTime()}`),
                 data: file,
                 options: {
                     onProgress: handleUploadProgress

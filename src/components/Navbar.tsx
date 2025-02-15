@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, LogOut, Settings } from "lucide-react";
+import { useAuthenticator } from "@aws-amplify/ui-react";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { signOut } = useAuthenticator();
 
   return (
     <nav className="bg-white shadow-md px-6 py-3 flex justify-between items-center mb-8">
@@ -31,7 +33,7 @@ export default function Navbar() {
             <Link to="/settings" className="flex items-center px-4 py-2 hover:bg-gray-100">
               <Settings size={16} className="mr-2" /> Settings
             </Link>
-            <button className="w-full flex items-center px-4 py-2 text-red-500 hover:bg-gray-100">
+            <button onClick={signOut} className="w-full flex items-center px-4 py-2 text-red-500 hover:bg-gray-100">
               <LogOut size={16} className="mr-2" /> Sign Out
             </button>
           </div>
