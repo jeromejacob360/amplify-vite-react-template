@@ -7,28 +7,27 @@ import { client } from "../lib/amplify/client";
 type ApplicantCount = "<10" | "10-20" | "20-40" | "40-80" | "80-100" | ">100";
 type ApplicationStatus = "interviewScheduled" | "interviewed" | "accepted" | "rejected" | "noResponse"
 
-interface AdditionalDocument {
-    id: number;
+interface UploadedDocument {
+    id?: number;
     title: string;
-    file?: FileList;
+    file?: FileList
+    fileUrl?: string;
 }
 
 interface JobApplicationFormData {
     title: string;
     applicationStatus?: ApplicationStatus;
     description: string;
-    // salaryRange?: string;
     numberOfApplicants: ApplicantCount;
-    resume?: FileList;
-    resumeUrl?: string;
+    resume?: UploadedDocument;
     coverLetter?: boolean;
     coverLetterFile?: FileList;
-    documents: AdditionalDocument[];
+    documents: UploadedDocument[];
 }
 
 export default function JobApplicationForm() {
 
-    const [documents, setDocuments] = useState<AdditionalDocument[]>([]);
+    const [documents, setDocuments] = useState<UploadedDocument[]>([]);
     const [uploadProgress, setUploadProgress] = useState(0);
 
     const { register, handleSubmit, watch, setValue, reset } = useForm<JobApplicationFormData>({
@@ -39,30 +38,39 @@ export default function JobApplicationForm() {
 
 
     const onSubmit: SubmitHandler<JobApplicationFormData> = async (data) => {
-        if (data.resume?.length) {
+
+        if (data.resume?.file?.length) {
             let res;
             try {
-                res = await uploadFileToS3(data.resume![0]);
+                res = await uploadFileToS3(data.resume?.file![0]);
                 if (res?.path) {
-                    data.resumeUrl = res.path;
+                    data.resume.fileUrl = res.path;
+                    data.resume.title = data.resume.file![0].name
                 }
+
                 setUploadProgress(0);
                 setDocuments([]);
                 // reset();
 
             } catch (error) {
                 console.log("Error ", error);
-
             }
         }
-        const responseFromDynamoDB = await client.models.JobApplication.create({
-            jobTitle: data.title,
-            jobDescription: data.description,
-            numberOfApplicants: data.numberOfApplicants,
-            resumeUrl: data.resumeUrl,
-            coverLetterUrl: data.coverLetterFile?.[0].name
-        });
-        console.log("responseFromDynamoDB", responseFromDynamoDB);
+        try {
+            delete data.resume?.file;
+            delete data.resume?.id;
+            
+            await client.models.JobApplication.create({
+                jobTitle: data.title,
+                jobDescription: data.description,
+                numberOfApplicants: data.numberOfApplicants,
+                resume: data.resume,
+                coverLetterUrl: data.coverLetterFile?.[0].name
+            });
+
+        } catch (error) {
+            console.log("Error saving to DynamoDB", error);
+        }
     };
 
     const uploadFileToS3 = async (file: File) => {
@@ -75,6 +83,8 @@ export default function JobApplicationForm() {
                     onProgress: handleUploadProgress
                 }
             }).result;
+            console.log("result", result);
+
         } catch (error) {
             console.log("Error ", error);
         }
@@ -92,7 +102,7 @@ export default function JobApplicationForm() {
 
     // Add new document field
     const addDocumentField = () => {
-        setDocuments([...documents, { id: Date.now(), title: "", file: undefined }]);
+        setDocuments([...documents, { id: Date.now(), title: "", file: undefined, fileUrl: "" }]);
     };
 
     // Remove document field
@@ -164,7 +174,15 @@ export default function JobApplicationForm() {
                 {/* Resume Upload */}
                 <div>
                     <label className="form-label">Resume</label>
-                    <input type="file" {...register("resume")} className="input" />
+                    <input type="file" onChange={(e) => {
+                        if (e.target.files?.length) {
+                            setValue("resume", {
+                                id: Date.now(),
+                                title: e.target.files[0].name,
+                                file: e.target.files,
+                            });
+                        }
+                    }} className="input" />
                 </div>
 
                 {/* Cover Letter Checkbox */}
@@ -211,7 +229,7 @@ export default function JobApplicationForm() {
                         {/* Remove Button */}
                         <button
                             type="button"
-                            onClick={() => removeDocumentField(doc.id)}
+                            onClick={() => removeDocumentField(doc.id!)}
                             className="bg-red-500 text-white px-4 py-2 rounded-md"
                         >
                             Remove

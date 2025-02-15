@@ -10,10 +10,15 @@ export const schema = a.schema({
     .returns(a.string())
     .handler(a.handler.function(sayHello))
     .authorization((allow) => [allow.authenticated()]),
+
   JobApplication: a
     .model({
       jobTitle: a.string(),
       jobDescription: a.string(),
+      resume: a.customType({
+        title: a.string(),
+        fileUrl: a.string(),
+      }),
       // salaryRange: a.string(),
       numberOfApplicants: a.string(),
       resumeUrl: a.string(),

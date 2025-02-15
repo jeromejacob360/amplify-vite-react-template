@@ -47,3 +47,11 @@
 .form-group {
   @apply space-y-4;
 }
+
+.table-header-cell {
+  @apply px-4 py-6 border border-gray-200;
+}
+
+.table-data-cell {
+  @apply px-4 py-2 border-x border-gray-200;
+}
