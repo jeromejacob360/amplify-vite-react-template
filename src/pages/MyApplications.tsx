@@ -58,16 +58,11 @@ export default function MyApplications() {
     };
 
     const handleResumeDownload = async (resumeUrl: string | undefined, resumeTitle: string | undefined) => {
-      console.log("resumeUrl", resumeUrl);
-      
       const res = await downloadData({
         path: resumeUrl as string
       }).result;
 
       const blob = await res.body.blob();
-      console.log("Resume blob", res);
-      console.log("blob", blob);
-      
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -76,25 +71,21 @@ export default function MyApplications() {
       link.click();
       window.URL.revokeObjectURL(url);
       link.remove();
-
-
-      console.log("url", res);
     }
 
     const handleDelete = async (job: JobApplication) => {
       try {
         const {id, resumeUrl} = job;
-        const deleteResultFromS3 = await remove({
+        await remove({
           path: resumeUrl as string
         })
-        console.log("deleteResultFromS3", deleteResultFromS3);
         
         await client.models.JobApplication.delete({id}).then(() => {
           setApplications(applications.filter(job => job.id !== id));
         })
         
       } catch (error) {
-        console.log("Error deleting job: ", error);
+        console.error("Error deleting job: ", error);
         
       }
       

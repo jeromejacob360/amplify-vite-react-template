@@ -12,8 +12,6 @@ export default function ProgressBar({ progress }: UploadProgressProps) {
     if (progress > 0 && progress < 100) {
       setVisible(true);
     } else if (progress === 100) {
-      console.log("Upload complete!");
-      
       setPopupVisible(true);
       setTimeout(() => {
         setPopupVisible(false);

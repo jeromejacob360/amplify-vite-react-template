@@ -53,7 +53,7 @@ export default function JobApplicationForm() {
                 // reset();
 
             } catch (error) {
-                console.log("Error ", error);
+                console.error("Error ", error);
             }
         }
         try {
@@ -69,7 +69,7 @@ export default function JobApplicationForm() {
             });
 
         } catch (error) {
-            console.log("Error saving to DynamoDB", error);
+            console.error("Error saving to DynamoDB", error);
         }
     };
 
@@ -83,10 +83,8 @@ export default function JobApplicationForm() {
                     onProgress: handleUploadProgress
                 }
             }).result;
-            console.log("result", result);
-
         } catch (error) {
-            console.log("Error ", error);
+            console.error("Error ", error);
         }
 
         return result;
