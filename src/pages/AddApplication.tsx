@@ -36,9 +36,7 @@ export default function JobApplicationForm() {
 
     const coverLetterChecked = watch("coverLetter");
 
-
     const onSubmit: SubmitHandler<JobApplicationFormData> = async (data) => {
-
         if (data.resume?.file?.length) {
             let res;
             try {
@@ -47,11 +45,9 @@ export default function JobApplicationForm() {
                     data.resume.fileUrl = res.path;
                     data.resume.title = data.resume.file![0].name
                 }
-
                 setUploadProgress(0);
                 setDocuments([]);
-                // reset();
-
+                reset();
             } catch (error) {
                 console.error("Error ", error);
             }
@@ -59,7 +55,6 @@ export default function JobApplicationForm() {
         try {
             delete data.resume?.file;
             delete data.resume?.id;
-            
             await client.models.JobApplication.create({
                 jobTitle: data.title,
                 jobDescription: data.description,
@@ -67,7 +62,6 @@ export default function JobApplicationForm() {
                 resume: data.resume,
                 coverLetterUrl: data.coverLetterFile?.[0].name
             });
-
         } catch (error) {
             console.error("Error saving to DynamoDB", error);
         }
@@ -145,16 +139,6 @@ export default function JobApplicationForm() {
                         <option value="noResponse">No Response</option>
                     </select>
                 </div>
-
-                {/* Salary Range */}
-                {/* <div>
-                    <label className="form-label">Salary Range</label>
-                    <input
-                        type="number"
-                        {...register("salaryRange", { min: 0, pattern: /0-9/ })}
-                        className="input"
-                    />
-                </div> */}
 
                 {/* Number of Applicants */}
                 <div>

@@ -58,13 +58,10 @@ export default function MyApplications() {
     };
 
     const handleResumeDownload = async (resumeUrl: string | undefined, resumeTitle: string | undefined) => {
-      const res = await downloadData({
+      const res = await getUrl({
         path: resumeUrl as string
-      }).result;
-
-      const blob = await res.body.blob();
-      
-      const url = window.URL.createObjectURL(blob);
+      });
+      const url = res.url.toString()
       const link = document.createElement("a");
       link.href = url;
       link.download = resumeTitle!;
