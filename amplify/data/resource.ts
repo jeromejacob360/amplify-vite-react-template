@@ -15,16 +15,13 @@ export const schema = a.schema({
     .model({
       jobTitle: a.string(),
       jobDescription: a.string(),
-      resume: a.customType({
-        title: a.string(),
-        fileUrl: a.string(),
-      }),
-      // salaryRange: a.string(),
       numberOfApplicants: a.string(),
-      resumeUrl: a.string(),
-      coverLetterUrl: a.string(),
       status: a.enum(["interviewScheduled", "interviewed", "accepted", "rejected", "noResponse"]),
       appliedDate: a.string(),
+      resumeFilename: a.string(),
+      resumeUrl: a.string(),
+      coverLetterFilename: a.string(),
+      coverLetterUrl: a.string(),
     })
     .authorization((allow) => [allow.owner()]),
 });

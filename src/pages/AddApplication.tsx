@@ -3,65 +3,38 @@ import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import ProgressBar from "../components/ProgressBar";
 import { client } from "../lib/amplify/client";
-
-type ApplicantCount = "<10" | "10-20" | "20-40" | "40-80" | "80-100" | ">100";
-type ApplicationStatus = "interviewScheduled" | "interviewed" | "accepted" | "rejected" | "noResponse"
-
-interface UploadedDocument {
-    id?: number;
-    title: string;
-    file?: FileList
-    fileUrl?: string;
-}
-
-interface JobApplicationFormData {
-    title: string;
-    applicationStatus?: ApplicationStatus;
-    description: string;
-    numberOfApplicants: ApplicantCount;
-    resume?: UploadedDocument;
-    coverLetter?: boolean;
-    coverLetterFile?: FileList;
-    documents: UploadedDocument[];
-}
+import { UploadedDocument } from "../interfaces/application";
+import type { Schema } from "../../amplify/data/resource";
 
 export default function JobApplicationForm() {
 
     const [documents, setDocuments] = useState<UploadedDocument[]>([]);
+    const [resumeFile, setResumeFile] = useState<File>();
+    const [coverLetterFile, setCoverLetterFile] = useState<File>();
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    const { register, handleSubmit, watch, setValue, reset } = useForm<JobApplicationFormData>({
-        defaultValues: { documents: [] },
-    });
+    const { register, handleSubmit, watch, setValue, reset } = useForm<Schema["JobApplication"]["type"]>();
 
-    const coverLetterChecked = watch("coverLetter");
+    // const coverLetterChecked = watch("coverLetter");
 
-    const onSubmit: SubmitHandler<JobApplicationFormData> = async (data) => {
-        if (data.resume?.file?.length) {
+    const onSubmit: SubmitHandler<Schema["JobApplication"]["type"]> = async (data) => {
+        if (resumeFile) {
             let res;
             try {
-                res = await uploadFileToS3(data.resume?.file![0]);
+                res = await uploadFileToS3(resumeFile);
                 if (res?.path) {
-                    data.resume.fileUrl = res.path;
-                    data.resume.title = data.resume.file![0].name
+                    data.resumeUrl = res.path;
+                    data.resumeFilename = resumeFile.name;
                 }
                 setUploadProgress(0);
-                setDocuments([]);
-                reset();
+                setResumeFile(undefined);
             } catch (error) {
                 console.error("Error ", error);
             }
         }
         try {
-            delete data.resume?.file;
-            delete data.resume?.id;
-            await client.models.JobApplication.create({
-                jobTitle: data.title,
-                jobDescription: data.description,
-                numberOfApplicants: data.numberOfApplicants,
-                resume: data.resume,
-                coverLetterUrl: data.coverLetterFile?.[0].name
-            });
+            await client.models.JobApplication.create(data);
+            reset();
         } catch (error) {
             console.error("Error saving to DynamoDB", error);
         }
@@ -71,7 +44,7 @@ export default function JobApplicationForm() {
         let result;
         try {
             result = await uploadData({
-                path: (({ identityId }) => `resumes/${identityId}/${file.name}-${new Date().getTime()}`),
+                path: (({ identityId }) => `files/${identityId}/resumes/${Date.now()}/${file.name}`),
                 data: file,
                 options: {
                     onProgress: handleUploadProgress
@@ -97,12 +70,12 @@ export default function JobApplicationForm() {
         setDocuments([...documents, { id: Date.now(), title: "", file: undefined, fileUrl: "" }]);
     };
 
-    // Remove document field
-    const removeDocumentField = (id: number) => {
-        const updatedDocs = documents.filter((doc) => doc.id !== id);
-        setDocuments(updatedDocs);
-        setValue("documents", updatedDocs);
-    };
+    // // Remove document field
+    // const removeDocumentField = (id: number) => {
+    //     const updatedDocs = documents.filter((doc) => doc.id !== id);
+    //     setDocuments(updatedDocs);
+    //     setValue("documents", updatedDocs);
+    // };
 
     return (
         <div className="form-container">
@@ -114,7 +87,7 @@ export default function JobApplicationForm() {
                     <label className="form-label">Job Title</label>
                     <input
                         type="text"
-                        {...register("title", { required: true })}
+                        {...register("jobTitle", { required: true })}
                         className="input"
                     />
                 </div>
@@ -123,7 +96,7 @@ export default function JobApplicationForm() {
                 <div>
                     <label className="form-label">Job Description</label>
                     <textarea
-                        {...register("description", { required: true })}
+                        {...register("jobDescription", { required: true })}
                         className="input"
                     />
                 </div>
@@ -131,7 +104,7 @@ export default function JobApplicationForm() {
                 {/* Status */}
                 <div>
                     <label className="form-label">Application Status</label>
-                    <select {...register("applicationStatus")} className="select">
+                    <select {...register("status")} className="select">
                         <option value="interviewScheduled">Interview scheduled</option>
                         <option value="interviewed">Interviewed</option>
                         <option value="accepted">Accepted</option>
@@ -158,28 +131,21 @@ export default function JobApplicationForm() {
                     <label className="form-label">Resume</label>
                     <input type="file" onChange={(e) => {
                         if (e.target.files?.length) {
-                            setValue("resume", {
-                                id: Date.now(),
-                                title: e.target.files[0].name,
-                                file: e.target.files,
-                            });
+                          setResumeFile(e.target.files[0]);
                         }
                     }} className="input" />
                 </div>
 
-                {/* Cover Letter Checkbox */}
-                <div className="flex items-center">
-                    <input id="coverLetter" type="checkbox" {...register("coverLetter")} className="mr-2" />
-                    <label className="select-none" htmlFor="coverLetter">Include Cover Letter</label>
-                </div>
-
                 {/* Cover Letter Upload (Conditional) */}
-                {coverLetterChecked && (
-                    <div>
-                        <label className="form-label">Upload Cover Letter</label>
-                        <input type="file" {...register("coverLetterFile")} className="input" />
-                    </div>
-                )}
+                <div>
+                    <label className="form-label">Upload Cover Letter</label>
+                    <input type="file" onChange={(e) => {
+                        if (e.target.files?.length) {
+                            setCoverLetterFile(e.target.files[0]);
+                        }
+                    }}
+                        className="input" />
+                </div>
 
                 {/* Additional Documents */}
                 <div>
@@ -196,26 +162,26 @@ export default function JobApplicationForm() {
                 {documents.map((doc, index) => (
                     <div key={doc.id} className="flex justify-items-center space-x-2 border border-gray-300 p-2 rounded-md mt-2">
                         {/* Document Title */}
-                        <input
+                        {/* <input
                             type="text"
                             placeholder="Document Title"
                             {...register(`documents.${index}.title` as const)}
                             className="w-1/3 p-2 border border-gray-300 rounded-md"
-                        />
+                        /> */}
                         {/* File Upload */}
-                        <input
+                        {/* <input
                             type="file"
                             {...register(`documents.${index}.file` as const)}
                             className="w-1/3 p-2 border border-gray-300 rounded-md"
-                        />
+                        /> */}
                         {/* Remove Button */}
-                        <button
+                        {/* <button
                             type="button"
                             onClick={() => removeDocumentField(doc.id!)}
                             className="bg-red-500 text-white px-4 py-2 rounded-md"
                         >
                             Remove
-                        </button>
+                        </button> */}
                     </div>
                 ))}
 

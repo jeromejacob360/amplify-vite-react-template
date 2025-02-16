@@ -4,22 +4,13 @@ import { Download, Pencil, Trash } from "lucide-react";
 import { getUrl, remove } from "aws-amplify/storage";
 import { convertToTimeFormat } from "../utils/timeStringToTime";
 import { useNavigate } from "react-router-dom";
-
-interface JobApplication {
-  id: string;
-  jobTitle: string | null;
-  jobDescription: string;
-  numberOfApplicants: string;
-  resumeUrl?: string;
-  resumeTitle?: string;
-  coverLetterUrl?: string;
-  applicationStatus?: string;
-  updatedAt: string;
-}
+import { Schema } from "../../amplify/data/resource";
 
 export default function MyApplications() {
+
+  type JobApplication = Schema["JobApplication"]["type"]
   const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [sortKey, setSortKey] = useState<keyof JobApplication | null>(null);
+  const [sortKey, setSortKey] = useState<keyof Schema["JobApplication"]["type"] | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
 
@@ -32,18 +23,7 @@ export default function MyApplications() {
   async function fetchApplications() {
     try {
       const { data } = await client.models.JobApplication.list();
-      const cleanedData = data.map(job => ({
-        id: job.id,
-        jobTitle: job.jobTitle ?? "",
-        jobDescription: job.jobDescription ?? "",
-        numberOfApplicants: job.numberOfApplicants ?? "",
-        resumeUrl: job.resume?.fileUrl ?? "",
-        resumeTitle: job.resume?.title ?? "",
-        coverLetterUrl: job.coverLetterUrl ?? "",
-        updatedAt: job.updatedAt,
-      }));
-
-      setApplications(cleanedData);
+      setApplications(data);
     } catch (error) {
       console.error("Error fetching applications: ", error);
     } finally {
@@ -60,10 +40,11 @@ export default function MyApplications() {
     }
   };
 
-  const handleResumeDownload = async (resumeUrl: string | undefined, resumeTitle: string | undefined) => {
+  const handleResumeDownload = async (resumeUrl: string, resumeTitle: string) => {
     const res = await getUrl({
       path: resumeUrl as string
     });
+
     const url = res.url.toString()
     const link = document.createElement("a");
     link.href = url;
@@ -140,8 +121,8 @@ export default function MyApplications() {
               <td className="table-data-cell">{convertToTimeFormat(job.updatedAt)}</td>
               <td className="table-data-cell">
                 {job.resumeUrl ? (
-                  <button className="w-full flex justify-center" onClick={() => handleResumeDownload(job.resumeUrl, job.resumeTitle)}>
-                    <Download size={18} color="blue" />
+                  <button className="w-full flex justify-center whitespace-nowrap cursor-pointer text-blue-500" onClick={() => handleResumeDownload(job.resumeUrl, job.resumeFilename)}>
+                    {job.resumeFilename?.substring(0, 15)}...{job.resumeFilename?.split('.')[1]}
                   </button>
                 ) : (
                   "N/A"
