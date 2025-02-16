@@ -1,101 +1,110 @@
 import { useEffect, useState } from "react";
 import { client } from "../lib/amplify/client";
-import { Download, Trash } from "lucide-react";
-import { downloadData, getUrl, remove } from "aws-amplify/storage";
+import { Download, Pencil, Trash } from "lucide-react";
+import { getUrl, remove } from "aws-amplify/storage";
 import { convertToTimeFormat } from "../utils/timeStringToTime";
+import { useNavigate } from "react-router-dom";
 
 interface JobApplication {
-    id: string;
-    jobTitle: string | null;
-    jobDescription: string;
-    numberOfApplicants: string;
-    resumeUrl?: string;
-    resumeTitle?: string;
-    coverLetterUrl?: string;
-    applicationStatus?: string;
-    updatedAt: string;
+  id: string;
+  jobTitle: string | null;
+  jobDescription: string;
+  numberOfApplicants: string;
+  resumeUrl?: string;
+  resumeTitle?: string;
+  coverLetterUrl?: string;
+  applicationStatus?: string;
+  updatedAt: string;
 }
 
 export default function MyApplications() {
-    const [applications, setApplications] = useState<JobApplication[]>([]);
-    const [sortKey, setSortKey] = useState<keyof JobApplication | null>(null);
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-    const [loading, setLoading] = useState(true);
-    
-    useEffect(() => {
-        fetchApplications();
-    }, []);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [sortKey, setSortKey] = useState<keyof JobApplication | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [loading, setLoading] = useState(true);
 
-    async function fetchApplications() {
-      try {
-          const { data } = await client.models.JobApplication.list();
-          const cleanedData = data.map(job => ({
-            id: job.id,
-            jobTitle: job.jobTitle ?? "",
-            jobDescription: job.jobDescription ?? "",
-            numberOfApplicants: job.numberOfApplicants ?? "",
-            resumeUrl: job.resume?.fileUrl ?? "",
-            resumeTitle: job.resume?.title ?? "",
-            coverLetterUrl: job.coverLetterUrl ?? "",
-            updatedAt: job.updatedAt, // Assuming this is always a string
-          }));
-          
-          setApplications(cleanedData);
-      } catch (error) {
-          console.error("Error fetching applications: ", error);
-      } finally {
-          setLoading(false);
-      }
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  async function fetchApplications() {
+    try {
+      const { data } = await client.models.JobApplication.list();
+      const cleanedData = data.map(job => ({
+        id: job.id,
+        jobTitle: job.jobTitle ?? "",
+        jobDescription: job.jobDescription ?? "",
+        numberOfApplicants: job.numberOfApplicants ?? "",
+        resumeUrl: job.resume?.fileUrl ?? "",
+        resumeTitle: job.resume?.title ?? "",
+        coverLetterUrl: job.coverLetterUrl ?? "",
+        updatedAt: job.updatedAt,
+      }));
+
+      setApplications(cleanedData);
+    } catch (error) {
+      console.error("Error fetching applications: ", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-    const handleSort = (key: keyof JobApplication) => {
-      if (sortKey === key) {
-        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-      } else {
-        setSortKey(key);
-        setSortOrder("asc");
-      }
-    };
-
-    const handleResumeDownload = async (resumeUrl: string | undefined, resumeTitle: string | undefined) => {
-      const res = await getUrl({
-        path: resumeUrl as string
-      });
-      const url = res.url.toString()
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = resumeTitle!;
-      link.click();
-      window.URL.revokeObjectURL(url);
-      link.remove();
+  const handleSort = (key: keyof JobApplication) => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
     }
+  };
 
-    const handleDelete = async (job: JobApplication) => {
-      try {
-        const {id, resumeUrl} = job;
-        await remove({
-          path: resumeUrl as string
-        })
-        
-        await client.models.JobApplication.delete({id}).then(() => {
-          setApplications(applications.filter(job => job.id !== id));
-        })
-        
-      } catch (error) {
-        console.error("Error deleting job: ", error);
-        
-      }
-      
-    }
-    
-    const sortedData = [...applications].sort((a, b) => {
-      if (!sortKey) return 0;
-      const valA = a[sortKey] ?? "";
-      const valB = b[sortKey] ?? "";
-      return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  const handleResumeDownload = async (resumeUrl: string | undefined, resumeTitle: string | undefined) => {
+    const res = await getUrl({
+      path: resumeUrl as string
     });
-    
-    if (loading) return <p>Loading job applications...</p>;
+    const url = res.url.toString()
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = resumeTitle!;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    link.remove();
+  }
+
+  const handleDelete = async (job: JobApplication) => {
+    try {
+      const { id, resumeUrl } = job;
+      await remove({
+        path: resumeUrl as string
+      })
+      await client.models.JobApplication.delete({ id }).then(() => {
+        setApplications(applications.filter(job => job.id !== id));
+      })
+    } catch (error) {
+      console.error("Error deleting job: ", error);
+    }
+  }
+
+  const handleEdit = async (job: JobApplication) => {
+    try {
+      navigate(`/edit/${job.id}`, { state: {
+        job
+      } });
+    } catch (error) {
+      console.error("Error updating job: ", error);
+    }
+  }
+
+  const sortedData = [...applications].sort((a, b) => {
+    if (!sortKey) return 0;
+    const valA = a[sortKey] ?? "";
+    const valB = b[sortKey] ?? "";
+    return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  });
+
+  if (loading) return <p>Loading job applications...</p>;
 
   return (
     <div className="flex flex-col items-center">
@@ -116,7 +125,7 @@ export default function MyApplications() {
                 {header} {sortKey === Object.keys(sortedData[0] ?? {})[index] ? (sortOrder === "asc" ? "▲" : "▼") : ""}
               </th>
             ))
-          }
+            }
             <th className="table-header-cell">Resume</th>
             <th className="table-header-cell">Cover Letter</th>
             <th className="table-header-cell">Actions</th>
@@ -147,7 +156,10 @@ export default function MyApplications() {
                   "N/A"
                 )}
               </td>
-                <td onClick={() => handleDelete(job)} className="table-data-cell w-full flex justify-center"><Trash size={18} color="red" /></td>
+              <td className="table-data-cell w-full flex justify-center space-x-2">
+                <Trash className="cursor-pointer" onClick={() => handleDelete(job)} size={18} color="red" />
+                <Pencil className="cursor-pointer" onClick={() => handleEdit(job)} size={18} color="red" />
+              </td>
             </tr>
           ))}
         </tbody>
