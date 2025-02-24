@@ -3,7 +3,8 @@ import Navbar from "./components/Navbar";
 import { Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import MyApplications from "./pages/MyApplications";
-import ApplicationDetails from "./pages/ApplicationDetails";
+import React, { Suspense } from "react";
+const ApplicationDetails = React.lazy(() => import("./pages/ApplicationDetails"));
 
 function App() {
 
@@ -14,7 +15,10 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/add" element={<AddApplication />} />
         <Route path="/applications" element={<MyApplications />} />
-        <Route path="/edit/:id" element={<ApplicationDetails />} />
+        <Route path="/application/:id" element={
+          <Suspense fallback={<h1>Loading................</h1>}>
+            <ApplicationDetails />
+          </Suspense>} />
       </Routes>
     </>
   );
